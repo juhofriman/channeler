@@ -5,14 +5,11 @@
 
 (def routes (atom {}))
 
-(defn split-uri
-  [uri]
-  (let [parts (clojure.string/split uri #"/")]
-    (reduce #(if (= "*" %2) (conj %1 :all) (conj %1 %2)) [:all] (rest parts))))
-
 (defn register-route!
   [uri target]
   (swap! routes #(assoc % uri target)))
+
+(defn reset-routes! [] (reset! routes {}))
 
 ; this is not matching uri, but matching route key in routespec
 (defn matching-uri
@@ -20,16 +17,19 @@
   (reduce #(if (.startsWith uri %2) %2 %1) nil uris))
 
 (defn build-url
-  [uri {:keys [host port] :as spec}]
-  (if (.startsWith uri "/")
-    (str "http://" host ":" port uri)
-    (str "http://" host ":" port "/" uri)))
+  [uri {:keys [host port] :as spec} query-string]
+  (let [qs (if query-string (str "?" query-string) "")]
+    (if (.startsWith uri "/")
+      (str "http://" host ":" port uri qs)
+      (str "http://" host ":" port "/" uri qs))))
 
-(defn proxy-url [routespec uri]
-  (if-let [uri-key (matching-uri (keys routespec) uri)] 
-    (build-url (subs uri (count uri-key)) (get routespec uri-key))))
+(defn proxy-url
+  ([routespec uri]
+   (proxy-url routespec uri nil))
+  ([routespec uri query-string]
+   (if-let [uri-key (matching-uri (keys routespec) uri)] 
+     (build-url (subs uri (count uri-key)) (get routespec uri-key) query-string))))
 
-(defn reset-routes! [] (reset! routes {}))
 
 (defn process-proxy
   [{:keys [status headers body error]}]
@@ -41,12 +41,12 @@
      :headers (reduce-kv #(assoc %1 (name %2) %3) {} headers)
      :body body}))
 
-(defn app [{uri :uri}]  
-  (if-let [route (proxy-url @routes uri)]
-    (do  (println (str uri ": Proxying "  route))
-         @(httpclient/get
-           route
-           process-proxy))
+(defn app [{uri :uri query-string :query-string :as req}]
+  
+  (if-let [route (proxy-url @routes uri query-string)]
+    (do
+      (println (str uri ": Proxying "  route))
+      @(httpclient/get route process-proxy))
     {:status 404
      :headers {"content-type" "text/plain"}
      :body (str "No such route " uri)}))
@@ -54,7 +54,6 @@
 
 
 (defonce server (atom nil))
-
 
 (defn stop-server []
   (when-not (nil? @server)

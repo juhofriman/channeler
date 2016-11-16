@@ -18,6 +18,9 @@
     (is (= "http://localhost:1234/foobarbaz"
            (proxy-url {"/" {:host "localhost" :port 1234 :path "*"}} "/foobarbaz")))
     (is (= "http://localhost:1234/bar"
-           (proxy-url {"/foo" {:host "localhost" :port 1234 :path "*"}} "/foo/bar")))))
+           (proxy-url {"/foo" {:host "localhost" :port 1234 :path "*"}} "/foo/bar"))))
+  (testing "passing GET parameters"
+    (is (= "http://localhost:1234/foo?a=1&b=2"
+           (proxy-url {"/" {:host "localhost" :port 1234 :path "*"}} "/foo" "a=1&b=2")))))
 
 
