@@ -5,6 +5,7 @@
 
 (deftest get-matching-uri
   (testing "testing getting matching uri"
+    (is (nil? (matching-uri ["/foo"] "/")))
     (is (= "/" (matching-uri ["/" "/foo"] "/")))
     (is (= "/" (matching-uri ["/" "/foo"] "/baz")))
     (is (= "/foo" (matching-uri ["/" "/foo" "/baz"] "/foo")))
