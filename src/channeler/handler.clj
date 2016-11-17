@@ -28,7 +28,8 @@
    (proxy-url routespec uri nil))
   ([routespec uri query-string]
    (if-let [uri-key (matching-uri (keys routespec) uri)] 
-     (build-url (subs uri (count uri-key)) (get routespec uri-key) query-string))))
+     {:url (build-url (subs uri (count uri-key)) (get routespec uri-key) query-string)
+      :headers (or (get-in routespec [uri-key :headers]))})))
 
 
 (defn process-proxy
@@ -46,7 +47,7 @@
   (if-let [route (proxy-url @routes uri query-string)]
     (do
       (println (str uri ": Proxying "  route))
-      @(httpclient/get route process-proxy))
+      @(httpclient/get (:url route) {:headers (:headers route)}  process-proxy))
     {:status 404
      :headers {"content-type" "text/plain"}
      :body (str "No such route " uri)}))
