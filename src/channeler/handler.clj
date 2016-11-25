@@ -3,13 +3,15 @@
   (:require [org.httpkit.server :as httpkit]
             [org.httpkit.client :as httpclient]))
 
-(def routes (atom {}))
+(def empty-state {:routes {} :port nil})
+
+(def routes (atom empty-state))
 
 (defn register-route!
   [uri target]
-  (swap! routes #(assoc % uri target)))
+  (swap! routes #(assoc-in % [:routes uri] target)))
 
-(defn reset-routes! [] (reset! routes {}))
+(defn reset-routes! [] (reset! routes empty-state))
 
 ; this is not matching uri, but matching route key in routespec
 (defn matching-uri
@@ -44,13 +46,15 @@
 
 (defn app [{uri :uri query-string :query-string :as req}]
   
-  (if-let [route (proxy-url @routes uri query-string)]
+  (if-let [route (proxy-url (:routes @routes) uri query-string)]
     (do
       (println (str uri ": Proxying "  route))
       @(httpclient/get (:url route) {:headers (:headers route)}  process-proxy))
-    {:status 404
-     :headers {"content-type" "text/plain"}
-     :body (str "No such route " uri)}))
+    (do
+      (println "No such route: " uri)
+      {:status 404
+       :headers {"content-type" "text/plain"}
+       :body (str "No such route " uri)})))
 
 
 
@@ -63,8 +67,17 @@
     (@server :timeout 100)
     (reset! server nil)))
 
-(defn start-server []
-  ;; The #' is useful when you want to hot-reload code
-  ;; You may want to take a look: https://github.com/clojure/tools.namespace
-  ;; and http://http-kit.org/migration.html#reload
-  (reset! server (httpkit/run-server #'app {:port 1234})))
+(defn start-server
+  ([]
+   (start-server 1234))
+  ([listen]
+   (start-server listen empty-state))
+  ([listen r]
+   ;; The #' is useful when you want to hot-reload code
+   ;; You may want to take a look: https://github.com/clojure/tools.namespace
+   ;; and http://http-kit.org/migration.html#reload
+   (do
+     (println "Channeler starting: localhost:" (or listen 1234))
+     (println r)
+     (swap! routes (fn [old-state] (assoc old-state :routes (or r empty-state))))
+     (reset! server (httpkit/run-server #'app {:port (or listen 1234)})))))
