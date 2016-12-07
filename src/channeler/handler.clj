@@ -44,12 +44,14 @@
      :headers (reduce-kv #(assoc %1 (name %2) %3) {} headers)
      :body body}))
 
-(defn app [{uri :uri query-string :query-string :as req}]
+(defn app [{uri :uri query-string :query-string method :request-method :as req}]
   
   (if-let [route (proxy-url (:routes @routes) uri query-string)]
     (do
-      (println (str uri ": Proxying "  route))
-      @(httpclient/get (:url route) {:headers (:headers route)}  process-proxy))
+      (println (str method " " uri ": Proxying "  route))
+      (case method
+        :get @(httpclient/get (:url route) {:headers (:headers route)}  process-proxy)
+        :post @(httpclient/post (:url route) {:headers (:headers route)}  process-proxy)))
     (do
       (println "No such route: " uri)
       {:status 404
