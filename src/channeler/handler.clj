@@ -44,7 +44,7 @@
      :headers (reduce-kv #(assoc %1 (name %2) %3) {} headers)
      :body body}))
 
-(defn app [{uri :uri query-string :query-string method :request-method :as req}]
+(defn proxy-handler [{uri :uri query-string :query-string method :request-method :as req}]
   
   (if-let [route (proxy-url (:routes @routes) uri query-string)]
     (do
@@ -57,29 +57,3 @@
       {:status 404
        :headers {"content-type" "text/plain"}
        :body (str "No such route " uri)})))
-
-
-
-(defonce server (atom nil))
-
-(defn stop-server []
-  (when-not (nil? @server)
-    ;; graceful shutdown: wait 100ms for existing requests to be finished
-    ;; :timeout is optional, when no timeout, stop immediately
-    (@server :timeout 100)
-    (reset! server nil)))
-
-(defn start-server
-  ([]
-   (start-server 1234))
-  ([listen]
-   (start-server listen empty-state))
-  ([listen r]
-   ;; The #' is useful when you want to hot-reload code
-   ;; You may want to take a look: https://github.com/clojure/tools.namespace
-   ;; and http://http-kit.org/migration.html#reload
-   (do
-     (println "Channeler starting: localhost:" (or listen 1234))
-     (println r)
-     (swap! routes (fn [old-state] (assoc old-state :routes (or r empty-state))))
-     (reset! server (httpkit/run-server #'app {:port (or listen 1234)})))))

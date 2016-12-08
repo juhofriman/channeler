@@ -1,11 +1,11 @@
 (ns user
-  (:require [channeler.handler :as handler]
+  (:require [channeler.server :as server]
             [clojure.tools.namespace.repl :refer [refresh]]))
 
 (defn start-server
   []
-  (handler/start-server))
+  (server/start-server))
 
 (defn reload []
-  (handler/stop-server)
+  (server/stop-server)
   (refresh :after 'user/start-server))
