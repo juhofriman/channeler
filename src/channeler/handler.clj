@@ -33,17 +33,20 @@
   ([routespec uri query-string]
    (if-let [uri-key (select-matching-route-key (keys routespec) uri)] 
      {:url (build-url :http (subs uri (count uri-key)) (get routespec uri-key) query-string)
-      :headers (or (get-in routespec [uri-key :headers]))})))
+      :headers (or (get-in routespec [uri-key :headers]))
+      :outbound-headers (or (get-in routespec [uri-key :outbound-headers]))})))
 
-(defn process-proxy
-  [{:keys [status headers body error]}]
-  (if error
-    {:status 404
-     :headers {"content-type" "text/plain"}
-     :body (str "Error: " error)}
-    {:status status
-     :headers (reduce-kv #(assoc %1 (name %2) %3) {} headers)
-     :body body}))
+(defn map-response
+  ([response]
+   (map-response {} response))
+  ([outbound-headers {:keys [status headers body error]}]
+   (if error
+     {:status 500
+      :headers {"content-type" "text/plain"}
+      :body (str "Error proxying: " error)}
+     {:status status
+      :headers (merge (reduce-kv #(assoc %1 (name %2) %3) {} headers) outbound-headers)
+      :body body})))
 
 (defn proxy-handler [{uri :uri query-string :query-string method :request-method :as req}]
   
@@ -51,8 +54,8 @@
     (do
       (println (str method " " uri ": Proxying "  route))
       (case method
-        :get @(httpclient/get (:url route) {:headers (:headers route)}  process-proxy)
-        :post @(httpclient/post (:url route) {:headers (:headers route)}  process-proxy)))
+        :get @(httpclient/get (:url route) {:headers (:headers route)} (partial map-response (:outbound-headers route)))
+        :post @(httpclient/post (:url route) {:headers (:headers route)} (partial map-response (:outbound-headers route)))))
     (do
       (println "No such route: " uri)
       {:status 404
