@@ -45,8 +45,8 @@
            (:status (map-response {:error "Mighty error"}))))
     (is (= 418
            (:status (map-response {:status 418})))))
-  (testing "mapping inbound headers"
+  (testing "mapping headers"
     (is (= {"X-test" "testing"}
            (:headers (map-response {:status 200 :headers {"X-test" "testing"}}))))
     (is (= {"X-test" "outbound"}
-           (:headers (map-response {:status 200 :headers {}} {"X-test" "outbound"}))))))
+           (:headers (map-response {"X-test" "outbound"} {:status 200 :headers {}}))))))
