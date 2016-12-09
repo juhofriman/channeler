@@ -13,26 +13,27 @@
 
 (defn reset-routes! [] (reset! routes empty-state))
 
-; this is not matching uri, but matching route key in routespec
-(defn matching-uri
-  [uris uri]
-  (reduce #(if (.startsWith uri %2) %2 %1) nil uris))
+(defn select-matching-route-key
+  "Selects matching route key from collection."
+  [all-route-keys matched-key]
+  (reduce #(if (.startsWith matched-key %2) %2 %1) nil all-route-keys))
+
+(defn query-string
+  "Generated query string canonical representation"
+  [qs]
+  (if qs (str "?" qs) ""))
 
 (defn build-url
-  [uri {:keys [host port] :as spec} query-string]
-  (let [qs (if query-string (str "?" query-string) "")]
-    (if (.startsWith uri "/")
-      (str "http://" host ":" port uri qs)
-      (str "http://" host ":" port "/" uri qs))))
+  [scheme uri {:keys [host port] :as spec} qs]
+  (str (name scheme) "://" host ":" port (if (.startsWith uri "/") "" "/")  uri (query-string qs)))
 
 (defn proxy-url
   ([routespec uri]
    (proxy-url routespec uri nil))
   ([routespec uri query-string]
-   (if-let [uri-key (matching-uri (keys routespec) uri)] 
-     {:url (build-url (subs uri (count uri-key)) (get routespec uri-key) query-string)
+   (if-let [uri-key (select-matching-route-key (keys routespec) uri)] 
+     {:url (build-url :http (subs uri (count uri-key)) (get routespec uri-key) query-string)
       :headers (or (get-in routespec [uri-key :headers]))})))
-
 
 (defn process-proxy
   [{:keys [status headers body error]}]
