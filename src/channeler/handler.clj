@@ -3,15 +3,13 @@
   (:require [org.httpkit.server :as httpkit]
             [org.httpkit.client :as httpclient]))
 
-(def empty-state {:routes {} :port nil})
-
-(def routes (atom empty-state))
+(def routes (atom {}))
 
 (defn register-route!
   [uri target]
   (swap! routes #(assoc-in % [:routes uri] target)))
 
-(defn reset-routes! [] (reset! routes empty-state))
+(defn reset-routes! [] (reset! routes {}))
 
 (defn select-matching-route-key
   "Selects matching route key from collection."
@@ -27,14 +25,14 @@
   [scheme uri {:keys [host port] :as spec} qs]
   (str (name scheme) "://" host ":" port (if (.startsWith uri "/") "" "/")  uri (query-string qs)))
 
-(defn proxy-url
+(defn resolve-route
   ([routespec uri]
-   (proxy-url routespec uri nil))
+   (resolve-route routespec uri nil))
   ([routespec uri query-string]
    (if-let [uri-key (select-matching-route-key (keys routespec) uri)] 
      {:url (build-url :http (subs uri (count uri-key)) (get routespec uri-key) query-string)
-      :headers (or (get-in routespec [uri-key :headers]))
-      :outbound-headers (or (get-in routespec [uri-key :outbound-headers]))})))
+      :headers (or (get-in routespec [uri-key :headers]) {})
+      :outbound-headers (or (get-in routespec [uri-key :outbound-headers]) {})})))
 
 (defn map-response
   ([response]
@@ -48,16 +46,21 @@
       :headers (merge (reduce-kv #(assoc %1 (name %2) %3) {} headers) outbound-headers)
       :body body})))
 
+(defn no-such-route
+  [uri]
+  (let [message (str "No such route: " uri)]
+    (println message)
+    {:status 404
+     :headers {"content-type" "text/plain"}
+     :body message}))
+
+(defn client-fn [method]
+  (case method
+    :get httpclient/get
+    ; default shouldn't occur because httpkit drops illeagal methods
+    (throw (Exception. (str "Unknown method " method)))))
+
 (defn proxy-handler [{uri :uri query-string :query-string method :request-method :as req}]
-  
-  (if-let [route (proxy-url (:routes @routes) uri query-string)]
-    (do
-      (println (str method " " uri ": Proxying "  route))
-      (case method
-        :get @(httpclient/get (:url route) {:headers (:headers route)} (partial map-response (:outbound-headers route)))
-        :post @(httpclient/post (:url route) {:headers (:headers route)} (partial map-response (:outbound-headers route)))))
-    (do
-      (println "No such route: " uri)
-      {:status 404
-       :headers {"content-type" "text/plain"}
-       :body (str "No such route " uri)})))
+  (if-let [{:keys [url headers outbound-headers]} (resolve-route (:routes @routes) uri query-string)]
+    @((client-fn method) url {:headers headers} (partial map-response outbound-headers))
+    (no-such-route uri)))
