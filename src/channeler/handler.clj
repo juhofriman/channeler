@@ -63,5 +63,7 @@
 
 (defn proxy-handler [{uri :uri query-string :query-string method :request-method :as req}]
   (if-let [{:keys [url headers outbound-headers]} (resolve-route (:routes @routes) uri query-string)]
-    @((client-fn method) url {:headers headers} (partial map-response outbound-headers))
+    (do 
+	(println "Querying: " url)
+    	@((client-fn method) url {:headers headers} (partial map-response outbound-headers)))
     (no-such-route uri)))
