@@ -57,6 +57,7 @@
 (defn client-fn [method]
   (case method
     :get httpclient/get
+    :post httpclient/post
     ; default shouldn't occur because httpkit drops illeagal methods
     (throw (Exception. (str "Unknown method " method)))))
 
