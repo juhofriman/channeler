@@ -1,32 +1,38 @@
 # channeler
 
-FIXME: description
+Channeler is a developer proxy. It's primarily meant for adding headers to the proxied requests and responses - such as mock authentication headers and
+CORS headers.
 
 ## Installation
 
-Download from http://example.com/FIXME.
+Build jar with leiningen and create sh script for running it.
 
-## Usage
+```
+lein uberjar
+```
 
-FIXME: explanation
+```bash
+#! /bin/bash
 
-    $ java -jar channeler-0.1.0-standalone.jar [args]
+java -jar /path/to/channeler-0.1.0-SNAPSHOT-standalone.jar $@
+```
 
-## Options
+By default, channeler looks out for `.channeler.edn` file in the current working directory, which defines proxy setup.
 
-FIXME: listing of options this app accepts.
+## Simple .channeler.edn
 
-## Examples
+```clojure
+{:port 5000 ; port to bind to
+ :routes 
+  {"/" {:host "localhost" ; host of the upstream 
+        :port 40900       ; port of the upstream
+        :headers {"X-user-id" "jack"}
+        :outbound-headers {"Access-Control-Allow-Origin" "*"}}}}
+```
 
-...
-
-### Bugs
-
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
+When `GET http://localhost:5000/api/get-kittens` is queried, channeler will proxy the request 
+to `GET http://localhost:40900/api/get-kittens` with X-user-id header added to the request.
+Channeler will also add Access-Control-Allow-Origin: * header to the response sent to the client.
 
 ## License
 

@@ -1,5 +1,4 @@
 (ns channeler.server
-  (:gen-class)
   (:require [org.httpkit.server :as httpkit]
             [channeler.handler :as handler]))
 

@@ -8,6 +8,5 @@
                  [http-kit "2.2.0"]]
   :main ^:skip-aot channeler.core
   :target-path "target/%s"
-  :profiles {:dev {:source-paths ["dev"]}
-             :uberjar {:aot :all}}
-  :repl-options {:init-ns user})
+  :profiles {:uberjar {:aot :all}}
+  :repl-options {:init-ns channeler.core})

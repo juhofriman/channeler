@@ -1,5 +1,4 @@
 (ns channeler.handler
-  (:gen-class)
   (:require [org.httpkit.server :as httpkit]
             [org.httpkit.client :as httpclient]))
 
@@ -58,12 +57,12 @@
   (case method
     :get httpclient/get
     :post httpclient/post
-    ; default shouldn't occur because httpkit drops illeagal methods
+    ; default shouldn't occur because httpkit drops illegal methods
     (throw (Exception. (str "Unknown method " method)))))
 
 (defn proxy-handler [{uri :uri query-string :query-string method :request-method :as req}]
   (if-let [{:keys [url headers outbound-headers]} (resolve-route (:routes @routes) uri query-string)]
     (do 
-	(println "Querying: " url)
+	    (println "Channeler querying: " url)
     	@((client-fn method) url {:headers headers} (partial map-response outbound-headers)))
     (no-such-route uri)))
