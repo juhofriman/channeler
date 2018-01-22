@@ -11,10 +11,18 @@ Build jar with leiningen and create sh script for running it.
 lein uberjar
 ```
 
+And then make a wrapper `channeler.sh`.
+
 ```bash
 #! /bin/bash
 
 java -jar /path/to/channeler-0.1.0-SNAPSHOT-standalone.jar $@
+```
+
+And then run channeler.
+
+```
+channeler.sh run
 ```
 
 By default, channeler looks out for `.channeler.edn` file in the current working directory, which defines proxy setup.
@@ -23,14 +31,14 @@ By default, channeler looks out for `.channeler.edn` file in the current working
 
 ```clojure
 {:port 5000 ; port to bind to
- :routes 
-  {"/" {:host "localhost" ; host of the upstream 
+ :routes
+  {"/" {:host "localhost" ; host of the upstream
         :port 40900       ; port of the upstream
         :headers {"X-user-id" "jack"}
         :outbound-headers {"Access-Control-Allow-Origin" "*"}}}}
 ```
 
-When `GET http://localhost:5000/api/get-kittens` is queried, channeler will proxy the request 
+When `GET http://localhost:5000/api/get-kittens` is queried, channeler will proxy the request
 to `GET http://localhost:40900/api/get-kittens` with X-user-id header added to the request.
 Channeler will also add Access-Control-Allow-Origin: * header to the response sent to the client.
 

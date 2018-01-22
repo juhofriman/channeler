@@ -28,7 +28,7 @@
   ([routespec uri]
    (resolve-route routespec uri nil))
   ([routespec uri query-string]
-   (if-let [uri-key (select-matching-route-key (keys routespec) uri)] 
+   (if-let [uri-key (select-matching-route-key (keys routespec) uri)]
      {:url (build-url :http (subs uri (count uri-key)) (get routespec uri-key) query-string)
       :headers (or (get-in routespec [uri-key :headers]) {})
       :outbound-headers (or (get-in routespec [uri-key :outbound-headers]) {})})))
@@ -62,7 +62,7 @@
 
 (defn proxy-handler [{uri :uri query-string :query-string method :request-method :as req}]
   (if-let [{:keys [url headers outbound-headers]} (resolve-route (:routes @routes) uri query-string)]
-    (do 
+    (do
 	    (println "Channeler querying: " url)
     	@((client-fn method) url {:headers headers} (partial map-response outbound-headers)))
     (no-such-route uri)))
